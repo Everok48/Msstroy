@@ -1,4 +1,6 @@
 # MStroy Frontend
+<img width="1860" height="346" alt="image" src="https://github.com/user-attachments/assets/34417b1e-c074-4d93-b079-02e97177260e" />
+
 
 ## Быстрый старт
 
