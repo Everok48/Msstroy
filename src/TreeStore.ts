@@ -1,3 +1,4 @@
+import _ from 'lodash';
 import type { Id, TreeItem } from './types';
 
 /** Хранилище элементов дерева */
@@ -13,15 +14,10 @@ export class TreeStore<T extends TreeItem = TreeItem> {
 
   /** Заполнить индексы */
   private _build(items: T[]): void {
-    for (let i = 0; i < items.length; i++) {
-      this._items.set(items[i].id, items[i]);
-    }
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      if (item.parent != null) {
-        this._addChild(item.parent, item);
-      }
-    }
+    _.forEach(items, (item) => this._items.set(item.id, item));
+    _.forEach(items, (item) => {
+      if (item.parent != null) this._addChild(item.parent, item);
+    });
   }
 
   getAll(): T[] {
@@ -38,15 +34,13 @@ export class TreeStore<T extends TreeItem = TreeItem> {
 
   getAllChildren(id: Id): T[] {
     const result: T[] = [];
-    const queue: T[] = [...(this._childrenMap.get(id) ?? [])];
-    for (let i = 0; i < queue.length; i++) {
-      const item = queue[i];
+    const stack: T[] = [...(this._childrenMap.get(id) ?? [])];
+    while (stack.length > 0) {
+      const item = stack.pop()!;
       result.push(item);
       const children = this._childrenMap.get(item.id);
       if (children) {
-        for (let j = 0; j < children.length; j++) {
-          queue.push(children[j]);
-        }
+        _.forEach(children, (child) => stack.push(child));
       }
     }
     return result;
@@ -68,28 +62,24 @@ export class TreeStore<T extends TreeItem = TreeItem> {
 
   addItem(item: T): void {
     this._items.set(item.id, item);
-    if (item.parent != null) {
-      this._addChild(item.parent, item);
-    }
+    if (item.parent != null) this._addChild(item.parent, item);
   }
 
   removeItem(id: Id): void {
     const idsToRemove: Id[] = [];
-    const queue: Id[] = [id];
-    for (let i = 0; i < queue.length; i++) {
-      const currentId = queue[i];
+    const stack = [id];
+    while (stack.length > 0) {
+      const currentId = stack.pop()!;
       idsToRemove.push(currentId);
       const children = this._childrenMap.get(currentId);
       if (children) {
-        for (let j = 0; j < children.length; j++) {
-          queue.push(children[j].id);
-        }
+        _.forEach(children, (child) => stack.push(child.id));
       }
     }
-    for (let i = 0; i < idsToRemove.length; i++) {
-      this._items.delete(idsToRemove[i]);
-      this._childrenMap.delete(idsToRemove[i]);
-    }
+    _.forEach(idsToRemove, (removeId) => {
+      this._items.delete(removeId);
+      this._childrenMap.delete(removeId);
+    });
   }
 
   updateItem(updatedItem: T): void {
@@ -117,9 +107,6 @@ export class TreeStore<T extends TreeItem = TreeItem> {
   private _removeChild(parentId: Id | null, child: T): void {
     if (parentId == null) return;
     const siblings = this._childrenMap.get(parentId);
-    if (siblings) {
-      const idx = siblings.indexOf(child);
-      if (idx !== -1) siblings.splice(idx, 1);
-    }
+    if (siblings) _.pull(siblings, child);
   }
 }
